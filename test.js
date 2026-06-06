@@ -20,6 +20,19 @@ function html2json(htmlText) {
     const nextChar = htmlText[i + 1];
 
     // ==========================================
+    // ПЕРЕВІРКА DOCTYPE (Тільки те, про що домовлялися)
+    // ==========================================
+    if (state === "TEXT" && char === "<") {
+      if (htmlText.substring(i, i + 9).toUpperCase() === "<!DOCTYPE") {
+        const closeDoctypeIndex = htmlText.indexOf(">", i);
+        if (closeDoctypeIndex !== -1) {
+          i = closeDoctypeIndex; // Просто перестрибуємо весь тег DOCTYPE до символу ">"
+          continue;
+        }
+      }
+    }
+
+    // ==========================================
     // СТАН 1: ЧИТАННЯ ТЕКСТУ (TEXT)
     // ==========================================
     if (state === "TEXT") {
@@ -263,6 +276,33 @@ const tests = [
   {
     name: "Тест 6: Велика матріошка дівиків VS параграфи (Глибока вкладеність)",
     html: "<div id='level-1'>Корінь 1<div id='level-2'>Глибше 2<p>Текст в P <div id='level-3'>Найглибше 3<br><p>Фінальний текст</p></div></p></div></div>"
+  },
+  {
+    name: "Тест 7: Чиста матріошка div-ів (Глибока вкладеність без автозакриття)",
+    html: "<div>1<div>2<div>3<div>4<div>5</div></div></div></div></div>"
+  },
+  {
+    name: "Тест 8: Зламані назви тегів (Спецсимволи div%, каша d1i%v, та пробіли)",
+    html: "<div%>Текст 1</div%><d1i%v>Текст 2</d1i%v>< div>Текст 3</ div>"
+  },
+  {
+    name: "Тест 8: Екстремальний тест (DOCTYPE, коментарі, div% та повна розмітка сторінки)",
+    html: `<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Супер Парсер</title>
+</head>
+<body>
+    <div%>Зламаний тег 1</div%>
+    <d1i%v class="test">Зламаний тег 2</d1i%v>
+    <div id=content class='main'>
+        <h1>Привіт, Світ!</h1>
+        <input type="text" disabled>
+        <p>Текст <br> після переносу.</p>
+    </div>
+</body>
+</html>`
   }
 ];
 

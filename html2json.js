@@ -10,11 +10,95 @@ function convertHtml2JsonAndSet() {
   You can rewrite it completely, just be sure it accepts htmlText as string and outputs json object.
 */
 function html2json(htmlText) {
-  return {
-    "Conversion results": "should be instead of this json obj",
-    "Just to show that it is dynamic value (input length)" : htmlText.length,
-  };
+  // 1. Стек для відстеження відкритих тегів (LIFO)
+  const stack = [];
+  
+  console.log(htmlText);
+  
+  // 2. Масив для кореневих вузлів найвищого рівня
+  const rootNodes = [];
+  
+  // 3. Поточний стан парсера (починаємо з тексту)
+  let state = "TEXT";
+  
+  // 4. Буфери для накопичення символів
+  let currentText = "";
+  let currentTagName = "";
+
+  // 5. Посимвольний обхід рядка HTML
+  for (let i = 0; i < htmlText.length; i++) {
+    const char = htmlText[i];
+    const nextChar = htmlText[i + 1];
+
+    // ==========================================
+    // СТАН 1: ЧИТАННЯ ТЕКСТУ (TEXT)
+    // ==========================================
+    if (state === "TEXT") {
+      
+      // Якщо зустріли символ "<", це потенційний початок тегу
+      if (char === "<") {
+        
+        // Перевіряємо, чи це дійсно тег (наступний символ — літера, "/" або "!")
+        // Це захищає від падіння, якщо "<" — це просто знак "менше ніж" у тексті
+        const isTag = /^[a-zA-Z/!?]/.test(nextChar);
+
+        if (isTag) {
+          // Перед тим як перемкнути режим, зберігаємо весь текст, який назбирали раніше
+          if (currentText.trim() !== "") {
+            const textNode = {
+              tag: "text",
+              content: currentText.trim()
+            };
+
+            // Якщо в стек уже щось поклали, додаємо цей текст як дитину до поточного тегу
+            if (stack.length > 0) {
+              stack[stack.length - 1].children.push(textNode);
+            } else {
+              // Якщо стек порожній, це текст на самому верхньому рівні
+              rootNodes.push(textNode);
+            }
+          }
+          
+          // Очищаємо текстовий буфер
+          currentText = "";
+
+          // Дивимося, який саме тег перед нами:
+          if (nextChar === "/") {
+            state = "CLOSING_TAG_NAME";
+            i++; // Пропускаємо символ "/", бо ми його вже розпізнали
+          } else {
+            state = "TAG_NAME"; // Переходимо до читання імені нового тегу
+          }
+        } else {
+          // Якщо після "<" йде пробіл або цифра, вважаємо це звичайним текстом
+          currentText += char;
+        }
+      } else {
+        // Якщо це будь-який інший символ, просто дописуємо його в наш буфер тексту
+        currentText += char;
+      }
+    }
+    
+    // ПРИМІТКА: Сюди ми в наступних кроках додамо інші стани:
+    // else if (state === "TAG_NAME") { ... }
+    // else if (state === "CLOSING_TAG_NAME") { ... }
+  }
+
+  // Граничний випадок: якщо файл закінчився, а в буфері залишився текст
+  if (state === "TEXT" && currentText.trim() !== "") {
+    const textNode = { tag: "text", content: currentText.trim() };
+    if (stack.length > 0) {
+      stack[stack.length - 1].children.push(textNode);
+    } else {
+      rootNodes.push(textNode);
+    }
+  }
+
+  // Перетворюємо отримане дерево об'єктів у фінальний JSON-рядок з гарними відступами
+  return JSON.stringify(rootNodes, null, 2);
 }
+
+module.exports = { html2json };
 
 function showExample1() {
   const htmlExample = `<!DOCTYPE html>
@@ -53,12 +137,8 @@ function showExample1() {
 </body>
 </html>
 `;
-  const jsonContent = {
-    "Comment 1":
-      "You have to think about how to take into account various html inputs so your json structure will cover them all and handle different cases.",
-    "Comment 2":
-      "When you make any choice in terms of selecting specific json structure for conversion - be ready to provide reasoning behind such choice.",
-  };
+
+  const jsonContent = html2json(htmlExample);
 
   document.getElementById("html").value = htmlExample;
   document.getElementById("json").textContent = JSON.stringify(
@@ -75,12 +155,8 @@ function showExample2() {
   <textarea>Some very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long string.</textarea>
 </div>
 `;
-  const jsonContent = {
-    "Comment 1":
-      "You have to think about how to take into account various html inputs so your json structure will cover them all and handle different cases.",
-    "Comment 2":
-      "When you make any choice in terms of selecting specific json structure for conversion - be ready to provide reasoning behind such choice.",
-  };
+
+  const jsonContent = html2json(htmlExample);
 
   document.getElementById("html").value = htmlExample;
   document.getElementById("json").textContent = JSON.stringify(

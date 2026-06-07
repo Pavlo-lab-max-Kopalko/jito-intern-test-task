@@ -210,7 +210,7 @@ function html2json(htmlText) {
     }
   }
 
-  return JSON.stringify(rootNodes, null, 2);
+  return rootNodes;
 }
 
 module.exports = { html2json };

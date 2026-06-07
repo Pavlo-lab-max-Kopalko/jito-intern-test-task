@@ -1,3 +1,30 @@
+## 🚀 Implementation Overview
+
+Under the terms of reference provided to me, I developed a parser that translates HTML, which is presented as a string, into JSON format written using Gemini where I acted as an AI operator. The parser uses a strictly isolated router "State Machine (DFA)" instead of regular expressions (RegEx).
+
+### Key Capabilities
+* **Implicit Tree Healing:** Automatically handles unclosed tags, is able to handle incorrectly nested tags, and output HTML that is already valid in terms of nesting.
+* **W3C Void Tag Compliance:** Correctly parses tags that do not have a paired closing tag (`<br>`, `<img>`, and so on), they do not violate the nesting hierarchy in any way.
+* **Dual-Environment Compatibility:** You can run it both on the client side using Live Server and on the server side using the Node.js environment.
+
+### Quick Start
+Запустити тести можна за допомогою наступних команд:
+```bash
+  node html_samples/test.js
+  node html_samples/small_spaces_and_case.js
+  node html_samples/newTest.js
+```
+
+
+
+
+
+
+
+
+
+
+
 # Jito's Software Development Intern "html2json" Test Task
 
 ## Task Rationale

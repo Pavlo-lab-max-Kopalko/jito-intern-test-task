@@ -3,19 +3,19 @@ const { html2json } = require('./../html2json')
 const tests = [
   {
     name: "Test 2: Void tags (br, img, etc. — must not pull text inside themselves)",
-    html: "<div>Привіт<br>Світ<img src='cat.jpg'>Кінець</div>"
+    html: "<div>Hello<br>World<img src='cat.jpg'>End</div>"
   },
   {
     name: "Test 3: Broken quotes in attributes (Fault-tolerance to markup errors)",
-    html: "<div class=\"main id=\"hero\">Текст</div>"
+    html: "<div class=\"main id=\"hero\">Text</div>"
   },
   {
     name: "Test 4: Missing closing tag (Automated stack balancing)",
-    html: "<div><p>Перший <div>Другий</div>"
+    html: "<div><p>First <div>Second</div>"
   },
   {
     name: "Test 5: Combined complex case (Mix of unquoted attributes and void tags)",
-    html: "<main id=content class='container'><input type=\"text\" disabled><br>Текст</main>"
+    html: "<main id=content class='container'><input type=\"text\" disabled><br>Text</main>"
   },
   {
     name: "Test 6: Giant div matryoshka VS paragraphs (Deep nesting)",
@@ -27,23 +27,23 @@ const tests = [
   },
   {
     name: "Test 8: Broken tag names (Special characters div%, chaotic d1i%v, and spaces)",
-    html: "<div%>Текст 1</div%><d1i%v>Текст 2</d1i%v>< div>Текст 3</ div>"
+    html: "<div%>Text 1</div%><d1i%v>Text 2</d1i%v>< div>Text 3</ div>"
   },
   {
     name: "Test 9: Extreme test (DOCTYPE, comments, div%, and full page markup)",
     html: `<!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Супер Парсер</title>
+    <title>Super Parser</title>
 </head>
 <body>
-    <div%>Зламаний тег 1</div%>
-    <d1i%v class="test">Зламаний тег 2</d1i%v>
+    <div%>Broken tag 1</div%>
+    <d1i%v class="test">Broken tag 2</d1i%v>
     <div id=content class='main'>
-        <h1>Привіт, Світ!</h1>
+        <h1>Hello, World!</h1>
         <input type="text" disabled>
-        <p>Текст <br> після переносу.</p>
+        <p>Text <br> after line break.</p>
     </div>
 </body>
 </html>`

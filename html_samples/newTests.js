@@ -2,7 +2,7 @@ const { html2json } = require('./../html2json')
 
 const tests = [
   {
-    name: "Test 1: Valid nesting and deep levels (Your first super-test)",
+    name: "Test 1",
     html: "div>1p>2p>3p>4p>5</p></p></p></p></div>"
   },
 ];

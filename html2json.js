@@ -5,10 +5,6 @@ function convertHtml2JsonAndSet() {
   jsonArea.textContent = JSON.stringify(jsonObj, null, 2);
 }
 
-/* 
-  Update this function to convert html into json object.
-  You can rewrite it completely, just be sure it accepts htmlText as string and outputs json object.
-*/
 function html2json(htmlText) {
   const stack = [];
   const rootNodes = [];

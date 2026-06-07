@@ -10,81 +10,197 @@ function convertHtml2JsonAndSet() {
   You can rewrite it completely, just be sure it accepts htmlText as string and outputs json object.
 */
 function html2json(htmlText) {
-  // 1. Стек для відстеження відкритих тегів (LIFO)
   const stack = [];
-  
-  console.log(htmlText);
-  
-  // 2. Масив для кореневих вузлів найвищого рівня
   const rootNodes = [];
-  
-  // 3. Поточний стан парсера (починаємо з тексту)
   let state = "TEXT";
-  
-  // 4. Буфери для накопичення символів
+
   let currentText = "";
   let currentTagName = "";
 
-  // 5. Посимвольний обхід рядка HTML
+  let currentAttrName = "";
+  let currentAttrValue = "";
+  let quoteChar = "";
+
+  let lastCreatedElement = null;
+
+  const voidTags = new Set(["br", "img", "meta", "input", "hr", "link", "source", "embed"]);
+
   for (let i = 0; i < htmlText.length; i++) {
     const char = htmlText[i];
     const nextChar = htmlText[i + 1];
 
-    // ==========================================
-    // СТАН 1: ЧИТАННЯ ТЕКСТУ (TEXT)
-    // ==========================================
+    if (state === "TEXT" && char === "<") {
+      if (htmlText.substring(i, i + 9).toUpperCase() === "<!DOCTYPE") {
+        const closeDoctypeIndex = htmlText.indexOf(">", i);
+        if (closeDoctypeIndex !== -1) {
+          i = closeDoctypeIndex;
+          continue;
+        }
+      }
+    }
+
     if (state === "TEXT") {
-      
-      // Якщо зустріли символ "<", це потенційний початок тегу
       if (char === "<") {
-        
-        // Перевіряємо, чи це дійсно тег (наступний символ — літера, "/" або "!")
-        // Це захищає від падіння, якщо "<" — це просто знак "менше ніж" у тексті
-        const isTag = /^[a-zA-Z/!?]/.test(nextChar);
-
-        if (isTag) {
-          // Перед тим як перемкнути режим, зберігаємо весь текст, який назбирали раніше
-          if (currentText.trim() !== "") {
-            const textNode = {
-              tag: "text",
-              content: currentText.trim()
-            };
-
-            // Якщо в стек уже щось поклали, додаємо цей текст як дитину до поточного тегу
+        if (/^[a-zA-Z/!?]/.test(nextChar)) {
+          let cleanText = currentText.trim();
+          
+          if (cleanText !== "") {
+            const textNode = { tag: "text", content: cleanText };
             if (stack.length > 0) {
               stack[stack.length - 1].children.push(textNode);
             } else {
-              // Якщо стек порожній, це текст на самому верхньому рівні
               rootNodes.push(textNode);
             }
           }
-          
-          // Очищаємо текстовий буфер
           currentText = "";
 
-          // Дивимося, який саме тег перед нами:
           if (nextChar === "/") {
             state = "CLOSING_TAG_NAME";
-            i++; // Пропускаємо символ "/", бо ми його вже розпізнали
+            i++; 
           } else {
-            state = "TAG_NAME"; // Переходимо до читання імені нового тегу
+            state = "TAG_NAME";
           }
-        } else {
-          // Якщо після "<" йде пробіл або цифра, вважаємо це звичайним текстом
-          currentText += char;
+          currentTagName = "";
         }
-      } else {
-        // Якщо це будь-який інший символ, просто дописуємо його в наш буфер тексту
+      } else if (char !== ">") {
         currentText += char;
       }
     }
-    
-    // ПРИМІТКА: Сюди ми в наступних кроках додамо інші стани:
-    // else if (state === "TAG_NAME") { ... }
-    // else if (state === "CLOSING_TAG_NAME") { ... }
+    else if (state === "TAG_NAME") {
+      if (char === ">" || char === " ") {
+        if (currentTagName.length > 0) {
+          const match = currentTagName.match(/[a-zA-Z0-9-]+/);
+          const cleanTagName = match ? match[0].toLowerCase() : "";
+
+          if (cleanTagName.length > 0) {
+            if ((cleanTagName === "div" || cleanTagName === "p") && stack.length > 0 && stack[stack.length - 1].tag === "p") {
+              stack.pop();
+            }
+
+            const newElement = {
+              tag: cleanTagName,
+              attributes: {},
+              children: []
+            };
+
+            lastCreatedElement = newElement;
+
+            if (stack.length > 0) {
+              stack[stack.length - 1].children.push(newElement);
+            } else {
+              rootNodes.push(newElement);
+            }
+
+            if (!voidTags.has(cleanTagName)) {
+              stack.push(newElement);
+            }
+          }
+        }
+
+        currentTagName = ""; 
+
+        if (char === ">") {
+          state = "TEXT";
+        } else {
+          state = "BEFORE_ATTRIBUTE_NAME";
+        }
+      } else {
+        currentTagName += char;
+      }
+    }
+    else if (state === "BEFORE_ATTRIBUTE_NAME") {
+      if (char === ">") {
+        currentTagName = "";
+        state = "TEXT";
+      } else if (char !== " " && char !== "/") {
+        currentAttrName = char;
+        state = "ATTRIBUTE_NAME";
+      }
+    }
+    else if (state === "ATTRIBUTE_NAME") {
+      if (char === "=") {
+        state = "BEFORE_ATTRIBUTE_VALUE";
+      } else if (char === " " || char === ">") {
+        const cleanAttrName = currentAttrName.replace(/['"\/]/g, "").trim();
+
+        if (cleanAttrName.length > 0 && lastCreatedElement && lastCreatedElement.attributes) {
+          lastCreatedElement.attributes[cleanAttrName] = true;
+        }
+        currentAttrName = "";
+
+        if (char === ">") {
+          currentTagName = "";
+          state = "TEXT";
+        } else {
+          state = "BEFORE_ATTRIBUTE_NAME";
+        }
+      } else {
+        currentAttrName += char;
+      }
+    }
+    else if (state === "BEFORE_ATTRIBUTE_VALUE") {
+      if (char === "\"" || char === "'") {
+        quoteChar = char;
+        currentAttrValue = "";
+        state = "ATTRIBUTE_VALUE";
+      } else if (char !== " ") {
+        quoteChar = "";
+        currentAttrValue = char;
+        state = "ATTRIBUTE_VALUE";
+      }
+    }
+    else if (state === "ATTRIBUTE_VALUE") {
+      const isQuoteClose = quoteChar && char === quoteChar;
+      const isUnquotedClose = !quoteChar && (char === " " || char === ">");
+
+      if (isQuoteClose || isUnquotedClose) {
+        if (lastCreatedElement && lastCreatedElement.attributes) {
+          lastCreatedElement.attributes[currentAttrName] = currentAttrValue;
+        }
+
+        currentAttrName = "";
+        currentAttrValue = "";
+
+        if (isUnquotedClose && char === ">") {
+          currentTagName = "";
+          state = "TEXT";
+        } else {
+          state = "BEFORE_ATTRIBUTE_NAME";
+        }
+      } else {
+        currentAttrValue += char;
+      }
+    }
+    else if (state === "CLOSING_TAG_NAME") {
+      if (char === ">") {
+        const match = currentTagName.match(/[a-zA-Z0-9-]+/);
+        const targetTag = match ? match[0].toLowerCase() : "";
+
+        if (targetTag.length > 0) {
+          let foundIndex = -1;
+          for (let j = stack.length - 1; j >= 0; j--) {
+            if (stack[j].tag === targetTag) {
+              foundIndex = j;
+              break;
+            }
+          }
+
+          if (foundIndex !== -1) {
+            while (stack.length > foundIndex + 1) {
+              stack.pop();
+            }
+            stack.pop();
+          }
+        }
+
+        currentTagName = "";
+        state = "TEXT";
+      } else {
+        currentTagName += char;
+      }
+    }
   }
 
-  // Граничний випадок: якщо файл закінчився, а в буфері залишився текст
   if (state === "TEXT" && currentText.trim() !== "") {
     const textNode = { tag: "text", content: currentText.trim() };
     if (stack.length > 0) {
@@ -94,7 +210,6 @@ function html2json(htmlText) {
     }
   }
 
-  // Перетворюємо отримане дерево об'єктів у фінальний JSON-рядок з гарними відступами
   return JSON.stringify(rootNodes, null, 2);
 }
 
